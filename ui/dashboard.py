@@ -27,7 +27,7 @@ st.markdown("""
 <style>
 [data-testid="stSidebar"] { min-width: 260px; max-width: 280px; }
 div[data-testid="metric-container"] > div { font-size: 0.82rem; }
-.block-container { padding-top: 1.2rem; }
+/* Removed the aggressive .block-container padding to prevent hiding top elements */
 </style>
 """, unsafe_allow_html=True)
 
@@ -220,13 +220,28 @@ def main() -> None:
     active_view = render_sidebar(scores)
     regions = get_regions(scores)
 
-    # ── Region tabs ───────────────────────────────────────────────────────────
-    tab_labels = ["All"] + regions
-    tabs = st.tabs(tab_labels)
+    # ── Region Pills (Stateful & Persistent) ──────────────────────────────────
+    region_options = ["All"] + regions
 
-    for tab, region in zip(tabs, tab_labels):
-        with tab:
-            render_view(active_view, region)
+    # 1. Initialize the session state for the region picker if it doesn't exist
+    if "region_picker" not in st.session_state:
+        st.session_state.region_picker = "All"
+
+    # 2. Callback: Catch the "unclick" (None) and force it back to "All"
+    def enforce_region_selection():
+        if st.session_state.region_picker is None:
+            st.session_state.region_picker = "All"
+
+    # 3. Render the pills, tied strictly to the session state key and callback
+    st.pills(
+        "🌍 Filter by Region:", 
+        options=region_options, 
+        key="region_picker",
+        on_change=enforce_region_selection
+    )
+
+    # 4. Render the active view using the persistent session state value
+    render_view(active_view, st.session_state.region_picker)
 
 
 if __name__ == "__main__":
